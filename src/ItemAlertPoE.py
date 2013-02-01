@@ -72,15 +72,15 @@ class ItemAlert(object):
         return data[3] | data[2] << 8 | data[1] << 16 | data[0] << 24
 
     def getProcessId(self):
-        clients = [x[0] for x in self.dbg.enumerate_processes() if x[1] == 'Client.exe']
+        clients = [x[0] for x in self.dbg.enumerate_processes() if x[1].lower().count('client.exe') == 1]
         pid = None
-        if not clients or len(clients) == 0: print 'No "Client.exe" process found.'
-        elif len(clients) > 1: print 'Found more than one "Client.exe" process.'
+        if not clients or len(clients) == 0: print 'No "client.exe" process found.'
+        elif len(clients) > 1: print 'Found more than one "client.exe" process.'
         else: pid = clients[0]
         return pid
 
     def getBaseAddress(self):
-        return [x[1] for x in self.dbg.enumerate_modules() if x[0] == 'Client.exe'][0]
+        return [x[1] for x in self.dbg.enumerate_modules() if x[0].lower().count('client.exe') == 1][0]
 
     def run(self):
         self.dbg.bp_set(ItemAlert.BP0, handler=self.grabPacketSize)

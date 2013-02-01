@@ -7,6 +7,14 @@ Items to be tracked can be added in NotifyItems.py, see the **INSTALLING file** 
 
 Currently, only item names are being tracked. Item quality, stats etc. should follow soon (tm).
 
+## Notes
+
+It has been brought to my attention that under certain circumstances, my way of processing the packet may be wrong.  
+I would strongly advise against using this program on a hardcore character, as crashes may occur.
+
+**This program may be cause for a permanent ban from the game.**  
+**I'm in no way responsible for any actions taken against the user, the user's account or characters.**
+
 ## Sample output
 
 <p align="center">

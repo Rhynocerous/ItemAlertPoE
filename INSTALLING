@@ -1,4 +1,4 @@
-Requires a Python interpreter. Tested with Python 2.7. Windows Only.
+Requires a 32-bit Python interpreter. Tested with Python 2.7. Windows Only.
 
 Furthermore, requires the following Python libraries:
 - pydbg

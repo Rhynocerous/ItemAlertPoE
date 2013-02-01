@@ -14,8 +14,8 @@ from NotifyItems import getNotifyItems
 from pydbg import *
 from pydbg.defines import *
 
-ALERT_VERSION = '20130201a'
-POE_VERSION = 'beta tags/0.10.0e'
+ALERT_VERSION = '20130202a'
+POE_VERSION = '0.10.0e'
 
 class PlaySoundWorker(threading.Thread):
     def run(self):
@@ -93,11 +93,20 @@ class ItemAlert(object):
         try: self.dbg.detach()
         except: pass
 
+def checkVersion():
+    import ctypes, sys
+    if ctypes.sizeof(ctypes.c_voidp) != 4:
+        print 'This program only works with a 32-bit Python installation!'
+        print 'The preferred (tested) version is Python 2.7, 32-bit.'
+        print 'You can download it from here: http://www.python.org/ftp/python/2.7.3/python-2.7.3.msi'
+        sys.exit(1)
+
 def main():
     OMGDONT('title Path of Exile ItemAlert by sku')
+    checkVersion()
     print str.format('Starting ItemAlert {0} for Path of Exile {1} by sku', ALERT_VERSION, POE_VERSION)
     alerter = ItemAlert()
     alerter.run()
 
 if __name__ == "__main__":
-	main()
+    main()

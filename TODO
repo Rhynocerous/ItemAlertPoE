@@ -1,0 +1,4 @@
+* Allow graceful termination (right now, the debugee will hang and crash when the debugger is detached)
+(* or: Write hooks instead of attaching a debugger)
+* Reverse more of the item parsing process (quality, status {unidentified, normal}, gem slots, mods, ..)
+* Add item filters

@@ -2,4 +2,3 @@
 (* or: Write hooks instead of attaching a debugger)
 * Reverse more of the item parsing process (quality, status {unidentified, normal}, gem slots, mods, ..)
 * Add item filters
-* Fix bug where the itemId is 4 bytes further into the packet, thanks to "stimmedcow - blizzhackers.cc" for pointing this out

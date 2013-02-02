@@ -1,20 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: ISO-8859-1 -*-
 
-"""
+'''
 sku wrote this program. As long as you retain this notice you
 can do whatever you want with this stuff. If we meet some day, and you think
 this stuff is worth it, you can buy me a beer in return.
-"""
+'''
+
 
 import atexit, winsound, threading
 from os import system as OMGDONT
 from ItemList import getItem, getItemName
-from NotifyItems import getNotifyItems
-from pydbg import *
-from pydbg.defines import *
+from NotifyItems import shouldNotify
+from ByteBuffer import ByteBuffer
+import ctypes, sys
 
-ALERT_VERSION = '20130202a'
+try:
+    from pydbg import *
+    from pydbg.defines import *
+except:
+    print 'You seem to be missing pydbg or pydasm.'
+    print 'Precompiled binaries can be downloaded from here: http://www.lfd.uci.edu/~gohlke/pythonlibs/#pydbg'
+
+ALERT_VERSION = '20130202b'
 POE_VERSION = '0.10.0e'
 
 class PlaySoundWorker(threading.Thread):
@@ -40,12 +48,49 @@ class ItemAlert(object):
         self.lastPacketSize = 0
 
     def grabPacketSize(self, dbg):
-        self.lastPacketSize = dbg.get_register("eax")
+        self.lastPacketSize = dbg.get_register('eax')
         return DBG_CONTINUE
 
     def beforeDemanglingPacket(self, dbg):
-        self.lastPacketBufferAddress = dbg.get_register("eax")
+        self.lastPacketBufferAddress = dbg.get_register('eax')
         return DBG_CONTINUE
+
+    def parseWorldItemPacket(self, packetData):
+        try:
+            buffer = ByteBuffer(packetData)
+            buffer.setEndian(ByteBuffer.BIG_ENDIAN)
+
+            id = buffer.nextByte()
+            objectType = buffer.nextDword()
+            unk1 = buffer.nextDword()
+            unk2 = buffer.nextByte()
+            if unk2 != 0: return
+
+            x = buffer.nextDword()
+            y = buffer.nextDword()
+            rot = buffer.nextDword()
+
+            unk3 = buffer.nextDword(ByteBuffer.LITTLE_ENDIAN)
+            unk4 = buffer.nextDword()
+
+            if unk3 >> 2 != 0:
+                buffer.nextDword()
+                buffer.nextDword()
+
+            unk5 = buffer.nextByte()
+            if unk5 != 0: return
+
+            unk5 = buffer.nextDword()
+            if unk5 != 0: buffer.nextDword()
+
+            unk6 = buffer.nextByte()
+            itemId = buffer.nextDword()
+            itemName = getItemName(itemId)
+            if shouldNotify(itemName):
+                print str.format('Detected item drop: {0}', itemName)
+                worker = PlaySoundWorker()
+                worker.start()
+        except: pass
 
     def afterDemanglingPacket(self, dbg):
         if self.lastPacketBufferAddress != 0 and self.lastPacketSize > 1:
@@ -53,23 +98,8 @@ class ItemAlert(object):
             packetData = map(lambda x: ord(x), packetData)
             for i in range(self.lastPacketSize):
                 if packetData[i:i+5] == [0xf0, 0x54, 0x92, 0x8a, 0x3a]:
-                    if i+0x24+0x04 < self.lastPacketBufferAddress:
-                        itemId = self.makeBigEndianDword(packetData[i+0x24:i+0x24+0x4])
-                        itemName = getItemName(itemId)
-                        if itemName in getNotifyItems():
-                            try:
-                                print str.format('Detected item drop: {name}', name=itemName)
-                                sound = PlaySoundWorker()
-                                sound.start()
-                            except: pass
+                    self.parseWorldItemPacket(packetData[i:])
         return DBG_CONTINUE
-
-    def makeBigEndianDword(self, data):
-        assert len(data) >= 4
-        if type(data) == str: data = list(data)
-        if type(data[0]) == str: data = map(lambda x: ord(x), data)
-        assert type(data) == list and type(data[0]) == int
-        return data[3] | data[2] << 8 | data[1] << 16 | data[0] << 24
 
     def getProcessId(self):
         clients = [x[0] for x in self.dbg.enumerate_processes() if x[1].lower().count('client.exe') == 1]
@@ -94,7 +124,6 @@ class ItemAlert(object):
         except: pass
 
 def checkVersion():
-    import ctypes, sys
     if ctypes.sizeof(ctypes.c_voidp) != 4:
         print 'This program only works with a 32-bit Python installation!'
         print 'The preferred (tested) version is Python 2.7, 32-bit.'
@@ -108,5 +137,5 @@ def main():
     alerter = ItemAlert()
     alerter.run()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

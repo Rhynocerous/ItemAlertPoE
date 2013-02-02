@@ -13,7 +13,7 @@ from os import system as OMGDONT
 from ItemList import getItem, getItemName
 from NotifyItems import shouldNotify
 from ByteBuffer import ByteBuffer
-import ctypes, sys
+import ctypes, sys, signal
 
 try:
     from pydbg import *
@@ -21,6 +21,7 @@ try:
 except:
     print 'You seem to be missing pydbg or pydasm.'
     print 'Precompiled binaries can be downloaded from here: http://www.lfd.uci.edu/~gohlke/pythonlibs/#pydbg'
+    sys.exit(1)
 
 ALERT_VERSION = '20130202b'
 POE_VERSION = '0.10.0e'
@@ -102,7 +103,7 @@ class ItemAlert(object):
         return DBG_CONTINUE
 
     def getProcessId(self):
-        clients = [x[0] for x in self.dbg.enumerate_processes() if x[1].lower().count('client.exe') == 1]
+        clients = [x[0] for x in self.dbg.enumerate_processes() if x[1].lower() == 'client.exe']
         pid = None
         if not clients or len(clients) == 0: print 'No "client.exe" process found.'
         elif len(clients) > 1: print 'Found more than one "client.exe" process.'
@@ -110,7 +111,7 @@ class ItemAlert(object):
         return pid
 
     def getBaseAddress(self):
-        return [x[1] for x in self.dbg.enumerate_modules() if x[0].lower().count('client.exe') == 1][0]
+        return [x[1] for x in self.dbg.enumerate_modules() if x[0].lower() == 'client.exe'][0]
 
     def run(self):
         self.dbg.bp_set(ItemAlert.BP0, handler=self.grabPacketSize)

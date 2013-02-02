@@ -8,12 +8,17 @@ this stuff is worth it, you can buy me a beer in return.
 '''
 
 
-import atexit, winsound, threading
 from os import system as OMGDONT
 from ItemList import getItem, getItemName
 from NotifyItems import shouldNotify
 from ByteBuffer import ByteBuffer
-import ctypes, sys, signal
+import ctypes
+import sys
+import threading
+import winsound
+import atexit
+import datetime
+import traceback
 
 try:
     from pydbg import *
@@ -38,6 +43,10 @@ class ItemAlert(object):
 
     def __init__(self):
         atexit.register(self.atExit)
+        self.logFile = open('log.txt', 'a', 0)
+        print >>self.logFile, 40 * '='
+        print >>self.logFile, str.format('Started ItemAlertPoE version {0} at {1!s}.', ALERT_VERSION, datetime.datetime.now())
+        print >>self.logFile, str.format('Python version: {0!s}', sys.version_info)
         self.dbg = pydbg()
         self.dbg.attach(self.getProcessId())
         self.baseAddress = self.getBaseAddress()
@@ -47,6 +56,12 @@ class ItemAlert(object):
         ItemAlert.BP2 += adjustment
         self.lastPacketBufferAddress = 0
         self.lastPacketSize = 0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.logFile.close()
 
     def grabPacketSize(self, dbg):
         self.lastPacketSize = dbg.get_register('eax')
@@ -65,7 +80,10 @@ class ItemAlert(object):
             objectType = buffer.nextDword()
             unk1 = buffer.nextDword()
             unk2 = buffer.nextByte()
-            if unk2 != 0: return
+            if unk2 != 0: 
+                print >>self.logFile, 'The following packet has an odd unk2 field:'
+                print >>self.logFile, self.dbg.hex_dump(map(lambda x: chr(x), packetData))
+                return
 
             x = buffer.nextDword()
             y = buffer.nextDword()
@@ -75,11 +93,16 @@ class ItemAlert(object):
             unk4 = buffer.nextDword()
 
             if unk3 >> 2 != 0:
+                print >>self.logFile, 'The following packet has an odd unk3 field:'
+                print >>self.logFile, self.dbg.hex_dump(map(lambda x: chr(x), packetData))
                 buffer.nextDword()
                 buffer.nextDword()
 
             unk5 = buffer.nextByte()
-            if unk5 != 0: return
+            if unk5 != 0:
+                print >>self.logFile, 'The following packet has an odd unk5 field:'
+                print >>self.logFile, self.dbg.hex_dump(map(lambda x: chr(x), packetData))
+                return
 
             unk5 = buffer.nextDword()
             if unk5 != 0: buffer.nextDword()
@@ -87,6 +110,7 @@ class ItemAlert(object):
             unk6 = buffer.nextByte()
             itemId = buffer.nextDword()
             itemName = getItemName(itemId)
+            print >>self.logFile, str.format('Detected item drop: {0} (id=0x{1:08x})', itemName, itemId)
             if shouldNotify(itemName):
                 print str.format('Detected item drop: {0}', itemName)
                 worker = PlaySoundWorker()
@@ -104,6 +128,7 @@ class ItemAlert(object):
 
     def getProcessId(self):
         clients = [x[0] for x in self.dbg.enumerate_processes() if x[1].lower() == 'client.exe']
+        print >>self.logFile, str.format('"Client.exe" processes found: {0!s}', clients)
         pid = None
         if not clients or len(clients) == 0: print 'No "client.exe" process found.'
         elif len(clients) > 1: print 'Found more than one "client.exe" process.'
@@ -111,12 +136,24 @@ class ItemAlert(object):
         return pid
 
     def getBaseAddress(self):
-        return [x[1] for x in self.dbg.enumerate_modules() if x[0].lower() == 'client.exe'][0]
+        base = [x[1] for x in self.dbg.enumerate_modules() if x[0].lower() == 'client.exe'][0]
+        print >>self.logFile, str.format('Base address: 0x{0:08x}', base)
+        return base
 
     def run(self):
-        self.dbg.bp_set(ItemAlert.BP0, handler=self.grabPacketSize)
-        self.dbg.bp_set(ItemAlert.BP1, handler=self.beforeDemanglingPacket)
-        self.dbg.bp_set(ItemAlert.BP2, handler=self.afterDemanglingPacket)
+        print >>self.logFile, str.format('bp0: 0x{0:08x}: {1}', ItemAlert.BP0, self.dbg.disasm(ItemAlert.BP0))
+        print >>self.logFile, str.format('bp1: 0x{0:08x}: {1}', ItemAlert.BP1, self.dbg.disasm(ItemAlert.BP1))
+        print >>self.logFile, str.format('bp2: 0x{0:08x}: {1}', ItemAlert.BP2, self.dbg.disasm(ItemAlert.BP2))
+        try:
+            self.dbg.bp_set(ItemAlert.BP0, handler=self.grabPacketSize)
+            self.dbg.bp_set(ItemAlert.BP1, handler=self.beforeDemanglingPacket)
+            self.dbg.bp_set(ItemAlert.BP2, handler=self.afterDemanglingPacket)
+        except Exception as inst:
+            print >>self.logFile, type(inst)
+            print >>self.logFile, inst.args
+            print >>self.logFile, inst
+            traceback.print_exc(file=self.logFile)
+        print >>self.logFile, 'Starting main loop.'
         try: self.dbg.debug_event_loop()
         except: pass
 
@@ -135,8 +172,7 @@ def main():
     OMGDONT('title Path of Exile ItemAlert by sku')
     checkVersion()
     print str.format('Starting ItemAlert {0} for Path of Exile {1} by sku', ALERT_VERSION, POE_VERSION)
-    alerter = ItemAlert()
-    alerter.run()
+    with ItemAlert() as alerter: alerter.run()
 
 if __name__ == '__main__':
     main()

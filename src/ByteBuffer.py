@@ -8,21 +8,21 @@ this stuff is worth it, you can buy me a beer in return.
 '''
 
 
-def makeDword(bytes, endian):
+def makeDword(data, endian):
     if endian == ByteBuffer.LITTLE_ENDIAN:
-        return bytes[0] | bytes[1] << 8 | bytes[2] << 16 | bytes[3] << 24
+        return data[0] | data[1] << 8 | data[2] << 16 | data[3] << 24
     else:
-        return bytes[3] | bytes[2] << 8 | bytes[1] << 16 | bytes[0] << 24
+        return data[3] | data[2] << 8 | data[1] << 16 | data[0] << 24
 
 class ByteBuffer(object):
 
     LITTLE_ENDIAN = 1
     BIG_ENDIAN = 2
 
-    def __init__(self, bytes):
-        self.bytes = bytes
+    def __init__(self, data):
+        self.data = data
         self.position = 0
-        self.length = len(bytes)
+        self.length = len(data)
         self.endian = ByteBuffer.LITTLE_ENDIAN
 
     def setEndian(self, endian):
@@ -33,12 +33,12 @@ class ByteBuffer(object):
 
     def nextByte(self):
         assert self.getRemainingBytes() >= 1
-        byte = self.bytes[self.position]
+        byte = self.data[self.position]
         self.position += 1
         return byte
 
     def nextDword(self, endian=None):
         assert self.getRemainingBytes() >= 4
-        dword = self.bytes[self.position:self.position+4]
+        dword = self.data[self.position:self.position+4]
         self.position += 4
         return makeDword(dword, self.endian if not endian else endian)

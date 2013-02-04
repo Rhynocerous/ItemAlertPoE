@@ -28,8 +28,8 @@ except:
     print 'Precompiled binaries can be downloaded from here: http://www.lfd.uci.edu/~gohlke/pythonlibs/#pydbg'
     sys.exit(1)
 
-ALERT_VERSION = '20130203a'
-POE_VERSION = '0.10.0e'
+ALERT_VERSION = '20130204a'
+POE_VERSION = '0.10.0f'
 
 class PlaySoundWorker(threading.Thread):
     def run(self):
@@ -37,9 +37,9 @@ class PlaySoundWorker(threading.Thread):
 
 class ItemAlert(object):
 
-    BP0 = 0x005B3E79
-    BP1 = 0x005B3EBD
-    BP2 = 0x005B3EBF
+    BP0 = 0x005B3E99
+    BP1 = 0x005B3EDD
+    BP2 = 0x005B3EDF
 
     def __init__(self):
         atexit.register(self.atExit)
